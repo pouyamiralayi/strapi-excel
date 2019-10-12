@@ -1,0 +1,17 @@
+{
+  "defaultConnection": "default",
+  "connections": {
+    "default": {
+      "connector": "strapi-hook-bookshelf",
+      "settings": {
+        "client": "postgres",
+        "database": "strapi-excel",
+        "host": "127.0.0.1",
+        "port": 5432,
+        "username": "strapi",
+        "password": "strapi123"
+      },
+      "options": {}
+    }
+  }
+}

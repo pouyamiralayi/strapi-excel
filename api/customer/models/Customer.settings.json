@@ -1,0 +1,40 @@
+{
+  "connection": "default",
+  "collectionName": "customers",
+  "info": {
+    "name": "customer",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "comment": ""
+  },
+  "attributes": {
+    "fin_year": {
+      "type": "string"
+    },
+    "record_no": {
+      "type": "string"
+    },
+    "date": {
+      "type": "date"
+    },
+    "customer_no": {
+      "required": true,
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "owed": {
+      "type": "string"
+    },
+    "owned": {
+      "type": "string"
+    }
+  }
+}

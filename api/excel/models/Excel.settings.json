@@ -1,0 +1,27 @@
+{
+  "connection": "default",
+  "collectionName": "excels",
+  "info": {
+    "name": "excel",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": [
+      "created_at",
+      "updated_at"
+    ],
+    "comment": ""
+  },
+  "attributes": {
+    "file_name": {
+      "default": "default",
+      "type": "string"
+    },
+    "excel_file": {
+      "collection": "file",
+      "via": "related",
+      "plugin": "upload"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "connection": "default",
+  "collectionName": "sellers",
+  "info": {
+    "name": "seller",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "comment": ""
+  },
+  "attributes": {
+    "fin_year": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "record_no": {
+      "type": "string"
+    },
+    "expire_date": {
+      "type": "date"
+    },
+    "seller_no": {
+      "required": true,
+      "type": "string"
+    },
+    "seller_name": {
+      "type": "string"
+    },
+    "product_no": {
+      "type": "string"
+    },
+    "product": {
+      "type": "string"
+    },
+    "first_unit": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "string"
+    },
+    "rate": {
+      "type": "string"
+    },
+    "payment": {
+      "type": "string"
+    },
+    "date": {
+      "type": "date"
+    }
+  }
+}
