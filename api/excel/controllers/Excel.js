@@ -4,12 +4,269 @@
  * Read the documentation (https://strapi.io/documentation/3.0.0-beta.x/guides/controllers.html#core-controllers)
  * to customize this controller
  */
+const _ = require('lodash');
 const moment = require('moment-jalaali')
 const XLSX = require('xlsx')
 const {convertRestQueryParams} = require('strapi-utils');
 const path = require('path')
 const axios = require('axios')
+const { sanitizeEntity } = require('strapi-utils');
+
+const emailRegExp = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+const formatError = error => [
+  { messages: [{ id: error.id, message: error.message, field: error.field }] },
+];
+
 module.exports = {
+  login_panel: async(ctx) => {
+    const provider = ctx.params.provider || 'local';
+    const params = ctx.request.body;
+    const store = await strapi.store({
+      environment: '',
+      type: 'plugin',
+      name: 'users-permissions',
+    });
+    // The identifier is required.
+    if (!params.identifier) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.email.provide',
+          message: 'Please provide your username or your e-mail.',
+        })
+      );
+    }
+    // The password is required.
+    if (!params.password) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.password.provide',
+          message: 'Please provide your password.',
+        })
+      );
+    }
+    const query = {};
+    // Check if the provided identifier is an email or not.
+    const isEmail = emailRegExp.test(params.identifier);
+    if (isEmail) {
+      query.email = params.identifier.toLowerCase();
+    } else {
+      query.username = params.identifier;
+    }
+    // Check if the user exists.
+    const user = await strapi
+      .query('user', 'users-permissions')
+      .findOne(query);
+
+    if (!user) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.invalid',
+          message: 'Identifier or password invalid.',
+        })
+      );
+    }
+
+    /*check user role*/
+    const androidRole = await strapi
+      .query('role', 'users-permissions')
+      .findOne({type: 'authenticated'}, []);
+    if(user.role.id !== androidRole.id){
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.invalid',
+          message: 'Not an admin user.',
+        })
+      );
+    }
+
+    if (
+      _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
+      user.confirmed !== true
+    ) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.confirmed',
+          message: 'Your account email is not confirmed',
+        })
+      );
+    }
+
+    if (user.blocked === true) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.blocked',
+          message: 'Your account has been blocked by an administrator',
+        })
+      );
+    }
+
+    // The user never authenticated with the `local` provider.
+    if (!user.password) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.password.local',
+          message:
+            'This user never set a local password, please login thanks to the provider used during account creation.',
+        })
+      );
+    }
+
+    const validPassword = strapi.plugins[
+      'users-permissions'
+      ].services.user.validatePassword(params.password, user.password);
+
+    if (!validPassword) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.invalid',
+          message: 'Identifier or password invalid.',
+        })
+      );
+    } else {
+      ctx.send({
+        jwt: strapi.plugins['users-permissions'].services.jwt.issue({
+          id: user.id,
+        }),
+        user: sanitizeEntity(user.toJSON ? user.toJSON() : user, {
+          model: strapi.query('user', 'users-permissions').model,
+        }),
+      });
+
+    }
+  },
+
+  login_android: async(ctx) => {
+    const provider = ctx.params.provider || 'local';
+    const params = ctx.request.body;
+    const store = await strapi.store({
+      environment: '',
+      type: 'plugin',
+      name: 'users-permissions',
+    });
+    // The identifier is required.
+    if (!params.identifier) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.email.provide',
+          message: 'Please provide your username or your e-mail.',
+        })
+      );
+    }
+    // The password is required.
+    if (!params.password) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.password.provide',
+          message: 'Please provide your password.',
+        })
+      );
+    }
+    const query = {};
+    // Check if the provided identifier is an email or not.
+    const isEmail = emailRegExp.test(params.identifier);
+    if (isEmail) {
+      query.email = params.identifier.toLowerCase();
+    } else {
+      query.username = params.identifier;
+    }
+    // Check if the user exists.
+    const user = await strapi
+      .query('user', 'users-permissions')
+      .findOne(query);
+
+    if (!user) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.invalid',
+          message: 'Identifier or password invalid.',
+        })
+      );
+    }
+
+    /*check user role*/
+    const androidRole = await strapi
+      .query('role', 'users-permissions')
+      .findOne({type: 'android'}, []);
+    if(user.role.id !== androidRole.id){
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.invalid',
+          message: 'Not an android user.',
+        })
+      );
+    }
+
+    if (
+      _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
+      user.confirmed !== true
+    ) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.confirmed',
+          message: 'Your account email is not confirmed',
+        })
+      );
+    }
+
+    if (user.blocked === true) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.blocked',
+          message: 'Your account has been blocked by an administrator',
+        })
+      );
+    }
+
+    // The user never authenticated with the `local` provider.
+    if (!user.password) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.password.local',
+          message:
+            'This user never set a local password, please login thanks to the provider used during account creation.',
+        })
+      );
+    }
+
+    const validPassword = strapi.plugins[
+      'users-permissions'
+      ].services.user.validatePassword(params.password, user.password);
+
+    if (!validPassword) {
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'Auth.form.error.invalid',
+          message: 'Identifier or password invalid.',
+        })
+      );
+    } else {
+      ctx.send({
+        jwt: strapi.plugins['users-permissions'].services.jwt.issue({
+          id: user.id,
+        }),
+        user: sanitizeEntity(user.toJSON ? user.toJSON() : user, {
+          model: strapi.query('user', 'users-permissions').model,
+        }),
+      });
+
+    }
+  },
   updatehook: async (ctx) => {
     const filters = convertRestQueryParams(ctx.request.query);
     var file_id = null
@@ -39,7 +296,7 @@ module.exports = {
     // await ctx.send(splitted)
     const defaultRole = await strapi
       .query('role', 'users-permissions')
-      .findOne({type: 'authenticated'}, []);
+      .findOne({type: 'android'}, []);
     // await ctx.send(defaultRole)
     const excel = await strapi.services.excel.findOne({id: excel_id})
     excel && excel.excel_file && excel.excel_file.forEach(f => {
@@ -191,9 +448,8 @@ module.exports = {
           }
         }
         try {
-          const res= await strapi.services.customer.create(customer)
-        }
-        catch (e) {
+          const res = await strapi.services.customer.create(customer)
+        } catch (e) {
           await ctx.send(e)
         }
       }
@@ -223,9 +479,8 @@ module.exports = {
           }
         }
         try {
-          const res= await strapi.services.seller.create(seller)
-        }
-        catch (e) {
+          const res = await strapi.services.seller.create(seller)
+        } catch (e) {
           await ctx.send(e)
         }
       }
@@ -250,18 +505,27 @@ module.exports = {
         //   .then(response => {
         //     console.log(response)
         //   })
-        try{
-          const res = await strapi.query('user', 'users-permissions').create({
-            username: auth.username,
-            password: auth.password,
-            email: auth.email,
-            confirmed: true,
-            blocked: false,
-            provider: 'local',
-            role: defaultRole.id
-          })
-        }
-        catch (e) {
+        try {
+          const data = await strapi.plugins['users-permissions'].services.user.add({
+              username: auth.username,
+              password: auth.password,
+              email: auth.email,
+              confirmed: true,
+              blocked: false,
+              provider: 'local',
+              role: defaultRole.id
+            }
+          );
+          // const res = await strapi.query('user', 'users-permissions').create({
+          //   username: auth.username,
+          //   password: auth.password,
+          //   email: auth.email,
+          //   confirmed: true,
+          //   blocked: false,
+          //   provider: 'local',
+          //   role: defaultRole.id
+          // })
+        } catch (e) {
           await ctx.send(e) // {"name": "error","severity": "ERROR","detail": "Key (username)=(420181) already exists.","table": "users-permissions_user",}
         }
         // console.log(res)

@@ -2,6 +2,22 @@
   "routes": [
     {
       "method": "POST",
+      "path": "/loginpanel",
+      "handler": "Excel.login_panel",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+    "method": "POST",
+    "path": "/login",
+    "handler": "Excel.login_android",
+    "config": {
+      "policies": []
+    }
+    },
+    {
+      "method": "POST",
       "path": "/updatehook",
       "handler": "Excel.updatehook",
       "config": {
