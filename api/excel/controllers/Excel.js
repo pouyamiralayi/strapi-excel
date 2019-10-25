@@ -66,8 +66,13 @@ module.exports = {
       try {
         const customers = await strapi.services.customer.find({file_id: id.toString()})
         for(let customer of customers){
-          await strapi.services.customer.delete({id:customer.id})
-          // console.log(res)
+          try{
+            await strapi.services.customer.delete({id:customer.id})
+            // console.log(res)
+          }
+          catch (e) {
+            console.log(e)
+          }
         }
       } catch (e) {
         console.log(e)
@@ -77,8 +82,13 @@ module.exports = {
       try {
         const sellers = await strapi.services.seller.find({file_id: id.toString()})
         for(let seller of sellers){
-          await strapi.services.seller.delete({id:seller.id})
-          // console.log(res)
+          try{
+            await strapi.services.seller.delete({id:seller.id})
+            // console.log(res)
+          }
+          catch (e) {
+            console.log(e)
+          }
         }
       } catch (e) {
         console.log(e)
