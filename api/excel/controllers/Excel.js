@@ -10,17 +10,17 @@ const XLSX = require('xlsx')
 const {convertRestQueryParams} = require('strapi-utils');
 const path = require('path')
 const axios = require('axios')
-const { sanitizeEntity } = require('strapi-utils');
+const {sanitizeEntity} = require('strapi-utils');
 
 const emailRegExp = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 const formatError = error => [
-  { messages: [{ id: error.id, message: error.message, field: error.field }] },
+  {messages: [{id: error.id, message: error.message, field: error.field}]},
 ];
 
 module.exports = {
   destroy: async (ctx) => {
-    const { id } = ctx.params;
-    if(!id){
+    const {id} = ctx.params;
+    if (!id) {
       return ctx.badRequest(
         null,
         formatError({
@@ -31,29 +31,65 @@ module.exports = {
       );
     }
 
-      const config = await strapi
-        .store({
-          environment: strapi.config.environment,
-          type: 'plugin',
-          name: 'upload',
-        })
-        .get({ key: 'provider' });
+    const config = await strapi
+      .store({
+        environment: strapi.config.environment,
+        type: 'plugin',
+        name: 'upload',
+      })
+      .get({key: 'provider'});
 
-      const file = await strapi.plugins['upload'].services.upload.fetch({ id });
-      const res = await strapi.services.excel.find({})
-      const excel = res[0]
-      const excel_files = excel['excel_file']
-      // return ctx.send(excel_files)
-      const newFiles = excel_files.filter(f => f['id'] != id)
-      // return newFiles
-      excel['excel_file'] = newFiles
-      await strapi.services.excel.update({id:excel.id},excel)
+    const file = await strapi.plugins['upload'].services.upload.fetch({id});
+    const res = await strapi.services.excel.find({})
+    const excel = res[0]
+    const excel_files = excel['excel_file']
+    // return ctx.send(excel_files)
+    const newFiles = excel_files.filter(f => f['id'] != id)
+    // return newFiles
+    excel['excel_file'] = newFiles
+    try {
+      await strapi.services.excel.update({id: excel.id}, excel)
+    } catch (e) {
+      console.log(e)
+    }
+    try {
       await strapi.plugins['upload'].services.upload.remove(file, config);
-      // const customers = await strapi.services.customer.find({file_id:id})
-      // await ctx.send(customers);
-    },
+    } catch (e) {
+      console.log(e)
+    }
+    const customers_count = await strapi.services.customer.count({file_id: id.toString()})
+    const sellers_count = await strapi.services.seller.count({file_id: id.toString()})
+    // return ctx.send(sellers_count)
+    const total_customers = Math.ceil(customers_count / 100)
+    const total_sellers = Math.ceil(sellers_count / 100)
+    for (let i = 1; i <= total_customers; i++) {
+      try {
+        const customers = await strapi.services.customer.find({file_id: id.toString()})
+        for(let customer of customers){
+          await strapi.services.customer.delete({id:customer.id})
+          // console.log(res)
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    }
+    for (let i = 1; i <= total_sellers; i++) {
+      try {
+        const sellers = await strapi.services.seller.find({file_id: id.toString()})
+        for(let seller of sellers){
+          await strapi.services.seller.delete({id:seller.id})
+          // console.log(res)
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    }
+    // return ctx.send(sellers)
+    return ctx.response.status = 200
+    // await ctx.send(customers);
+  },
 
-  login_panel: async(ctx) => {
+  login_panel: async (ctx) => {
     const provider = ctx.params.provider || 'local';
     const params = ctx.request.body;
     const store = await strapi.store({
@@ -108,7 +144,7 @@ module.exports = {
     const androidRole = await strapi
       .query('role', 'users-permissions')
       .findOne({type: 'authenticated'}, []);
-    if(user.role.id !== androidRole.id){
+    if (user.role.id !== androidRole.id) {
       return ctx.badRequest(
         null,
         formatError({
@@ -119,7 +155,7 @@ module.exports = {
     }
 
     if (
-      _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
+      _.get(await store.get({key: 'advanced'}), 'email_confirmation') &&
       user.confirmed !== true
     ) {
       return ctx.badRequest(
@@ -178,7 +214,7 @@ module.exports = {
     }
   },
 
-  login_android: async(ctx) => {
+  login_android: async (ctx) => {
     const provider = ctx.params.provider || 'local';
     const params = ctx.request.body;
     const store = await strapi.store({
@@ -233,7 +269,7 @@ module.exports = {
     const androidRole = await strapi
       .query('role', 'users-permissions')
       .findOne({type: 'android'}, []);
-    if(user.role.id !== androidRole.id){
+    if (user.role.id !== androidRole.id) {
       return ctx.badRequest(
         null,
         formatError({
@@ -244,7 +280,7 @@ module.exports = {
     }
 
     if (
-      _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
+      _.get(await store.get({key: 'advanced'}), 'email_confirmation') &&
       user.confirmed !== true
     ) {
       return ctx.badRequest(
@@ -338,7 +374,7 @@ module.exports = {
     excel && excel.excel_file && excel.excel_file.forEach(f => {
       /*FIXME f.id is integer, file_ids contains strings! be careful!*/
       if (f && f.id && file_ids.includes(f.id.toString())) {
-        f.url && file_urls.push({url:f.url, id:f.id})
+        f.url && file_urls.push({url: f.url, id: f.id})
       }
     })
     // await ctx.send({excel, file_ids, file_urls})
@@ -564,11 +600,13 @@ module.exports = {
           //   role: defaultRole.id
           // })
         } catch (e) {
-          await ctx.send(e) // {"name": "error","severity": "ERROR","detail": "Key (username)=(420181) already exists.","table": "users-permissions_user",}
+          continue
+          // await ctx.send(e) // {"name": "error","severity": "ERROR","detail": "Key (username)=(420181) already exists.","table": "users-permissions_user",}
         }
         // console.log(res)
       }
       // await ctx.send({data_customer, data_seller, data_auth})
     }
+    return ctx.response.status = 200
   }
 };
