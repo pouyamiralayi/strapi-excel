@@ -18,6 +18,41 @@ const formatError = error => [
 ];
 
 module.exports = {
+  destroy: async (ctx) => {
+    const { id } = ctx.params;
+    if(!id){
+      return ctx.badRequest(
+        null,
+        formatError({
+          id: 'File.destroy.error.id.local',
+          message:
+            'Wrong id for the file.',
+        })
+      );
+    }
+
+      const config = await strapi
+        .store({
+          environment: strapi.config.environment,
+          type: 'plugin',
+          name: 'upload',
+        })
+        .get({ key: 'provider' });
+
+      const file = await strapi.plugins['upload'].services.upload.fetch({ id });
+      const res = await strapi.services.excel.find({})
+      const excel = res[0]
+      const excel_files = excel['excel_file']
+      // return ctx.send(excel_files)
+      const newFiles = excel_files.filter(f => f['id'] != id)
+      // return newFiles
+      excel['excel_file'] = newFiles
+      await strapi.services.excel.update({id:excel.id},excel)
+      await strapi.plugins['upload'].services.upload.remove(file, config);
+      // const customers = await strapi.services.customer.find({file_id:id})
+      // await ctx.send(customers);
+    },
+
   login_panel: async(ctx) => {
     const provider = ctx.params.provider || 'local';
     const params = ctx.request.body;
@@ -267,6 +302,7 @@ module.exports = {
 
     }
   },
+
   updatehook: async (ctx) => {
     const filters = convertRestQueryParams(ctx.request.query);
     var file_id = null
@@ -302,15 +338,15 @@ module.exports = {
     excel && excel.excel_file && excel.excel_file.forEach(f => {
       /*FIXME f.id is integer, file_ids contains strings! be careful!*/
       if (f && f.id && file_ids.includes(f.id.toString())) {
-        f.url && file_urls.push(f.url)
+        f.url && file_urls.push({url:f.url, id:f.id})
       }
     })
     // await ctx.send({excel, file_ids, file_urls})
-    for (const url of file_urls) {
+    for (const file of file_urls) {
       const data_customer = [];
       const data_seller = [];
       const data_auth = [];
-      const workbook = XLSX.readFile(path.join(__dirname, '..', '..', '..', 'public', url), {sheetStubs: true});
+      const workbook = XLSX.readFile(path.join(__dirname, '..', '..', '..', 'public', file.url), {sheetStubs: true});
       const sheet_name_list = workbook.SheetNames;
       for (const y of sheet_name_list) {
         if (y === "Sheet1") {
@@ -448,6 +484,7 @@ module.exports = {
           }
         }
         try {
+          customer['file_id'] = file.id
           const res = await strapi.services.customer.create(customer)
         } catch (e) {
           await ctx.send(e)
@@ -479,6 +516,7 @@ module.exports = {
           }
         }
         try {
+          seller['file_id'] = file.id
           const res = await strapi.services.seller.create(seller)
         } catch (e) {
           await ctx.send(e)

@@ -1,6 +1,14 @@
 {
   "routes": [
     {
+      "method": "DELETE",
+      "path": "/destroy/:id",
+      "handler": "Excel.destroy",
+      "config": {
+        "policies": []
+      }
+    },
+    {
       "method": "POST",
       "path": "/loginpanel",
       "handler": "Excel.login_panel",

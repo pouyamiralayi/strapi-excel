@@ -7,7 +7,10 @@
   },
   "options": {
     "increments": true,
-    "timestamps": true,
+    "timestamps": [
+      "created_at",
+      "updated_at"
+    ],
     "comment": ""
   },
   "attributes": {
@@ -34,6 +37,10 @@
       "type": "string"
     },
     "owned": {
+      "type": "string"
+    },
+    "file_id": {
+      "required": true,
       "type": "string"
     }
   }

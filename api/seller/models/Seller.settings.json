@@ -7,7 +7,10 @@
   },
   "options": {
     "increments": true,
-    "timestamps": true,
+    "timestamps": [
+      "created_at",
+      "updated_at"
+    ],
     "comment": ""
   },
   "attributes": {
@@ -50,6 +53,10 @@
     },
     "date": {
       "type": "date"
+    },
+    "file_id": {
+      "type": "string",
+      "required": true
     }
   }
 }
