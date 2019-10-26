@@ -7,12 +7,9 @@
 
 module.exports = {
   async deletePost(ctx){
-    console.log(ctx.request.body)
-    if(Array.isArray(ctx.request.body)){
-      return await Promise.all(ctx.request.body.map(strapi.services.customer.delete));
-    }
-    else {
-      return strapi.services.customer.delete(ctx.request.body)
+    const final =  JSON.parse(ctx.request.body["id"])
+    if(final.length > 0){
+      return await Promise.all(final.map(id => strapi.services.customer.delete({id})));
     }
   }
 };
