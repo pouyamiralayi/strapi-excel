@@ -6,7 +6,8 @@
  */
 
 module.exports = {
-  async delete(ctx){
+  async deletePost(ctx){
+    console.log(ctx.request.body)
     if(Array.isArray(ctx.request.body)){
       return await Promise.all(ctx.request.body.map(strapi.services.customer.delete));
     }

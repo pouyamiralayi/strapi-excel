@@ -1,6 +1,14 @@
 {
   "routes": [
     {
+      "method": "POST",
+      "path": "/sellers/destroy",
+      "handler": "Seller.deletePost",
+      "config": {
+        "policies": []
+      }
+    },
+    {
       "method": "GET",
       "path": "/sellers",
       "handler": "Seller.find",
