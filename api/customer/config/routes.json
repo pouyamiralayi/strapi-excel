@@ -1,6 +1,14 @@
 {
   "routes": [
     {
+      "method": "GET",
+      "path": "/customers/owed",
+      "handler": "Customer.owed",
+      "config": {
+        "policies": []
+      }
+    },
+    {
       "method": "POST",
       "path": "/customers/destroy",
       "handler": "Customer.deletePost",
