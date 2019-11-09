@@ -24,24 +24,28 @@ module.exports = {
         }
       }
     })
-    const customers = await strapi.services.customer.find({customer_no})
-    var owed = 0
-    var owned = 0
-    var rem = 0
-    for (const c of customers) {
-      try {
-        if (c.owed != null && c.owed) {
-          owed += _.toNumber(c.owed)
+    const customers_count = await strapi.services.customer.count({customer_no})
+    const total_customers = Math.ceil(customers_count / 100)
+    let owed = 0
+    let owned = 0
+    let rem = 0
+    for (let i = 0; i < total_customers; i++) {
+      const customers = await strapi.services.customer.find({customer_no, _start: i*100})
+      for (const c of customers) {
+        try {
+          if (c.owed != null && c.owed) {
+            owed += _.toNumber(c.owed)
+          }
+        } catch (e) {
+          console.log(e)
         }
-      } catch (e) {
-        console.log(e)
-      }
-      try {
-        if (c.owned != null && c.owned) {
-          owned += _.toNumber(c.owned)
+        try {
+          if (c.owned != null && c.owned) {
+            owned += _.toNumber(c.owned)
+          }
+        } catch (e) {
+          console.log(e)
         }
-      } catch (e) {
-        console.log(e)
       }
     }
     try {
