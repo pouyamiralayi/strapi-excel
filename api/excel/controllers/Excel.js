@@ -151,10 +151,15 @@ module.exports = {
     }
 
     /*check user role*/
-    const androidRole = await strapi
+    const authenticatedRole = await strapi
       .query('role', 'users-permissions')
       .findOne({type: 'authenticated'}, []);
-    if (user.role.id !== androidRole.id) {
+
+    const androidRole = await strapi
+      .query('role', 'users-permissions')
+      .findOne({type: 'android'}, []);
+
+    if (user.role.id !== authenticatedRole.id && user.role.id !== androidRole.id) {
       return ctx.badRequest(
         null,
         formatError({
