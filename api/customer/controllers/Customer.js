@@ -24,13 +24,21 @@ module.exports = {
         }
       }
     })
-    const customers_count = await strapi.services.customer.count({customer_no})
+    const query = {customer_no}
+    const params = ['description_contains', 'date_gte', 'date_lt']
+    for (const p of params) {
+      if (p in ctx.request.query) {
+        query[p] = ctx.request.query[p]
+      }
+    }
+    const customers_count = await strapi.services.customer.count(query)
     const total_customers = Math.ceil(customers_count / 100)
     let owed = 0
     let owned = 0
     let rem = 0
     for (let i = 0; i < total_customers; i++) {
-      const customers = await strapi.services.customer.find({customer_no, _start: i*100})
+      query['_start'] = i * 100
+      const customers = await strapi.services.customer.find(query)
       for (const c of customers) {
         try {
           if (c.owed != null && c.owed) {
